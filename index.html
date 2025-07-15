@@ -1,0 +1,885 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chelsea FC Web Display</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f1419 0%, #1a2332 100%);
+            color: white;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        #unviewedBadge {
+          display: none !important;
+        }
+
+        /* Hide any default CleverTap notification badges/counts */
+        .wzrk_notification_count,
+        .wzrk-notification-count,
+        .clevertap-notification-count,
+        [class*="notification-count"]:not(.notification-count),
+        [class*="wzrk"]:not(#CTwebinbox),
+        [id*="wzrk"]:not(#CTwebinbox),
+        .ct-notification-count,
+        .ct-web-inbox-count {
+            display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            position: absolute !important;
+            top: -9999px !important;
+            left: -9999px !important;
+            width: 0 !important;
+            height: 0 !important;
+            z-index: -1 !important;
+        }
+
+        /* Additional specific hiding for CleverTap elements */
+        div[style*="position: fixed"][style*="top: 0"][style*="left: 0"],
+        div[style*="position: fixed"][style*="top: 0px"][style*="left: 0px"],
+        div[style*="position: absolute"][style*="top: 0"][style*="left: 0"] {
+            display: none !important;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            position: relative;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+
+        .notification-bell {
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 50px;
+            height: 50px;
+            background: #6CABDD;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .notification-bell:hover {
+            transform: scale(1.1);
+        }
+
+        .notification-count {
+            position: absolute;
+            top: -5px;
+            right: -5px;
+            background: #ff3030;
+            color: white;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.8rem;
+            font-weight: bold;
+            visibility: hidden;
+        }
+
+        .notification-count.show {
+            visibility: visible;
+        }
+
+        .custom-inbox {
+            position: fixed;
+            top: 70px;
+            right: 20px;
+            width: 350px;
+            max-height: 500px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.2);
+            z-index: 1000;
+            display: none;
+            overflow: hidden;
+        }
+
+        .custom-inbox.show {
+            display: block;
+        }
+
+        .inbox-header {
+            background: #034694;
+            color: white;
+            padding: 16px 20px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border-bottom: 1px solid #e0e0e0;
+        }
+
+        .inbox-content {
+            max-height: 400px;
+            overflow-y: auto;
+        }
+
+        .inbox-message {
+            padding: 16px 20px;
+            border-bottom: 1px solid #f0f0f0;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .inbox-message:hover {
+            background-color: #f8f9fa;
+        }
+
+        .inbox-message.unread {
+            background-color: #f0f7ff;
+            border-left: 4px solid #ffcc00;
+        }
+
+        .message-image {
+            width: 100%;
+            height: 120px;
+            object-fit: cover;
+            border-radius: 8px;
+            margin-bottom: 12px;
+        }
+
+        .message-content {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .message-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .message-text-content {
+            flex: 1;
+        }
+
+        .message-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+
+        .message-text {
+            font-size: 0.85rem;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .message-time {
+            font-size: 0.75rem;
+            color: #999;
+            margin-top: 4px;
+        }
+
+        .message-button {
+            background: #034694;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 8px;
+            transition: background-color 0.2s ease;
+        }
+
+        .message-button:hover {
+            background: #003366;
+        }
+
+        .no-notifications {
+            text-align: center;
+            padding: 40px 20px;
+            color: #666;
+        }
+
+        .no-notifications-icon {
+            font-size: 3rem;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+
+        .no-notifications-text {
+            font-size: 1rem;
+            color: #333;
+        }
+
+        .trophy-cards {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .trophy-card {
+            background: linear-gradient(135deg, #1e3a8a 0%, #3730a3 100%);
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+        }
+
+        .trophy-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+        }
+
+        .trophy-card-content {
+            display: flex;
+            align-items: center;
+            padding: 30px;
+            gap: 30px;
+        }
+
+        .trophy-image {
+            width: 200px;
+            height: 140px;
+            border-radius: 15px;
+            object-fit: cover;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+        }
+
+        .trophy-info {
+            flex: 1;
+        }
+
+        .trophy-title {
+            font-size: 1.8rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            color: #ffffff;
+        }
+
+        .trophy-subtitle {
+            font-size: 1.1rem;
+            color: #cbd5e1;
+            margin-bottom: 20px;
+        }
+
+        .trophy-buttons {
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(45deg, #034694, #003366);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: linear-gradient(45deg, #003366, #001a33);
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: linear-gradient(45deg, #ffffff, #f0f0f0);
+            color: #034694;
+            border: 2px solid #034694;
+        }
+
+        .btn-secondary:hover {
+            background: linear-gradient(45deg, #f0f0f0, #e0e0e0);
+            transform: translateY(-2px);
+        }
+
+        .btn-inbox {
+            background: linear-gradient(45deg, #ffcc00, #e6b800);
+            color: #034694;
+            font-weight: 700;
+        }
+
+        .btn-inbox:hover {
+            background: linear-gradient(45deg, #e6b800, #ccaa00);
+            transform: translateY(-2px);
+        }
+
+        @media (max-width: 768px) {
+            .trophy-card-content {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .trophy-image {
+                width: 100%;
+                max-width: 300px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .trophy-buttons {
+                justify-content: center;
+            }
+        }
+    </style>
+    <script type="text/javascript">
+    if (window.CleverTap) { }
+    else {
+      var clevertap = {
+        event: [],
+        profile: [],
+        account: [],
+        onUserLogin: [],
+        notifications: [],
+        privacy: [],
+      };
+      clevertap.account.push({ "id": "R5K-486-ZW7Z" });
+      clevertap.notifications.push({ inbox: { disableAutoRender: true } });
+
+      clevertap.privacy.push({ optOut: false });
+
+      (function () {
+        var wzrk = document.createElement("script");
+            wzrk.type = "text/javascript";
+            wzrk.async = true;
+            wzrk.src =
+              ("https:" == document.location.protocol
+              ? "https://d2r1yp2w7bby2u.cloudfront.net"
+              : "http://static.clevertap.com") + "/js/clevertap.min.js";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(wzrk, s);
+      })();
+
+      
+    }
+    console.log("Web SDK called");
+
+    document.querySelectorAll('*').forEach(el => {
+      const rect = el.getBoundingClientRect();
+      if (rect.top < 50 && rect.left < 50 && rect.width < 50 && rect.height < 50) {
+        console.log('🔍 Suspected badge element:', el, el.outerHTML);
+      }
+    });
+
+
+  </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Chelsea FC Trophy Cabinet</h1>
+            <div class="notification-bell" id="notificationBell">
+                🔔
+                <span class="notification-count" id="notificationCount"></span>
+            </div>
+            
+            <!-- Hidden CleverTap Web Inbox (required for functionality) -->
+            <div id="CTwebinbox" style="display: none !important; visibility: hidden !important; position: absolute !important; top: -9999px !important; left: -9999px !important; width: 0 !important; height: 0 !important; opacity: 0 !important; z-index: -1 !important;"></div>
+            
+            <!-- Custom Web Inbox -->
+            <div class="custom-inbox" id="customInbox">
+                <div class="inbox-header">
+                    <span>Notifications</span>
+                </div>
+                <div class="inbox-content" id="inboxContent">
+                    <div class="no-notifications">
+                        <div class="no-notifications-icon">🔔</div>
+                        <div class="no-notifications-text">No notifications available.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="trophy-cards">
+            <!-- 2012 UEFA Champions League -->
+            <div class="trophy-card">
+                <div class="trophy-card-content">
+                    <img src="https://img.chelseafc.com/image/upload/f_auto,w_1440,c_fill,g_faces,q_90/theshed/shot-of-the-day/GettyImages-458797440.jpg" alt="Chelsea 2012 Champions League Trophy Celebration" class="trophy-image">
+                    <div class="trophy-info">
+                        <h2 class="trophy-title">UEFA Champions League 2012</h2>
+                        <p class="trophy-subtitle">Historic victory against Bayern Munich at Allianz Arena</p>
+                        <div class="trophy-buttons">
+                            <a href="https://en.wikipedia.org/wiki/2012_UEFA_Champions_League_Final" target="_blank" class="btn btn-primary">Wikipedia</a>
+                            <a href="https://www.chelseafc.com/en/2012-champions-league" target="_blank" class="btn btn-secondary">Chelsea Blog</a>
+                            <button class="btn btn-inbox" onclick="showInboxMessage('2012 Champions League')">Inbox Message</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2021 UEFA Champions League -->
+            <div class="trophy-card">
+                <div class="trophy-card-content">
+                    <img src="https://cdn.vox-cdn.com/thumbor/muJjZFAxakg-foEYveqnWHq316E=/0x0:4963x3311/1200x800/filters:focal(1930x1227:2724x2021)/cdn.vox-cdn.com/uploads/chorus_image/image/69361817/1320702570.0.jpg" alt="Chelsea 2021 Champions League Trophy Celebration" class="trophy-image">
+                    <div class="trophy-info">
+                        <h2 class="trophy-title">UEFA Champions League 2021</h2>
+                        <p class="trophy-subtitle">Dominant performance against Manchester City in Porto</p>
+                        <div class="trophy-buttons">
+                            <a href="https://en.wikipedia.org/wiki/2021_UEFA_Champions_League_Final" target="_blank" class="btn btn-primary">Wikipedia</a>
+                            <a href="https://www.chelseafc.com/en/2021-champions-league" target="_blank" class="btn btn-secondary">Chelsea Blog</a>
+                            <button class="btn btn-inbox" onclick="showInboxMessage('2021 Champions League')">Inbox Message</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 2025 Club World Cup -->
+            <div class="trophy-card">
+                <div class="trophy-card-content">
+                    <img src="https://images.news18.com/ibnlive/uploads/2025/07/Untitled-2025-07-568e8c07e973ff5f8a106c3fc8fcbb03-4x3.jpg" alt="Chelsea 2025 Club World Cup Trophy Celebration" class="trophy-image">
+                    <div class="trophy-info">
+                        <h2 class="trophy-title">FIFA Club World Cup 2025</h2>
+                        <p class="trophy-subtitle">Latest triumph in the expanded tournament format</p>
+                        <div class="trophy-buttons">
+                            <a href="https://en.wikipedia.org/wiki/2025_FIFA_Club_World_Cup" target="_blank" class="btn btn-primary">Wikipedia</a>
+                            <a href="https://www.chelseafc.com/en/news/article/club-world-cup-final-report-chelsea-3-0-paris-saint-germain" target="_blank" class="btn btn-secondary">Chelsea Blog</a>
+                            <button class="btn btn-inbox" onclick="showInboxMessage('2025 Club World Cup')">Inbox Message</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Function to hide any CleverTap notification badges that appear after page load
+        function hideCleverTapNotifications() {
+            // Hide by class names
+            const selectors = [
+                '.wzrk_notification_count',
+                '.wzrk-notification-count',
+                '.clevertap-notification-count',
+                '.ct-notification-count',
+                '.ct-web-inbox-count',
+                '[class*="notification-count"]:not(.notification-count)', // hides generic notification-counts
+                '[class*="wzrk"]:not(#CTwebinbox)',
+                '[id*="wzrk"]:not(#CTwebinbox)'
+            ];
+            
+            selectors.forEach(selector => {
+                const elements = document.querySelectorAll(selector);
+                elements.forEach(el => {
+                    el.style.display = 'none';
+                    el.style.visibility = 'hidden';
+                    el.style.opacity = '0';
+                    el.style.position = 'absolute';
+                    el.style.top = '-9999px';
+                    el.style.left = '-9999px';
+                    el.style.width = '0';
+                    el.style.height = '0';
+                    el.style.zIndex = '-1';
+                });
+            });
+            
+            // Hide fixed positioned elements that might be notification badges
+            const fixedElements = document.querySelectorAll('div[style*="position: fixed"]');
+            fixedElements.forEach(el => {
+                const style = el.getAttribute('style');
+                if (style && style.includes('top: 0') && style.includes('left: 0') && el.id !== 'customInbox') {
+                    el.style.display = 'none';
+                }
+            });
+        }
+
+        // Custom Web Inbox functionality
+        let isInboxOpen = false;
+        
+        // Function to get inbox messages from CleverTap
+        function getInboxMessages() {
+            try {
+                if (window.clevertap && typeof clevertap.getAllInboxMessages === 'function') {
+                    const messages = clevertap.getAllInboxMessages();
+                    console.log('CleverTap messages:', messages);
+                    
+                    // Ensure we return an array
+                    if (Array.isArray(messages)) {
+                        return messages;
+                    } else if (messages && typeof messages === 'object') {
+                        // If it's an object, try to convert it to array
+                        return Object.values(messages);
+                    }
+                    return [];
+                }
+                console.log('CleverTap getAllInboxMessages not available');
+                return [];
+            } catch (error) {
+                console.error('Error getting inbox messages:', error);
+                return [];
+            }
+        }
+        
+        // Function to get unread message count
+        function getUnreadCount() {
+            try {
+                if (window.clevertap && typeof clevertap.getInboxMessageUnreadCount === 'function') {
+                    const count = clevertap.getInboxMessageUnreadCount();
+                    console.log('CleverTap unread count:', count);
+                    return count || 0;
+                }
+                console.log('CleverTap getInboxMessageUnreadCount not available');
+                return 0;
+            } catch (error) {
+                console.error('Error getting unread count:', error);
+                return 0;
+            }
+        }
+        
+        // Function to render inbox messages
+        function renderInboxMessages() {
+            const inboxContent = document.getElementById('inboxContent');
+            const messages = getInboxMessages();
+            
+            console.log('Rendering messages:', messages, 'Type:', typeof messages, 'Is Array:', Array.isArray(messages));
+            
+            // Check if messages is an object (CleverTap returns object, not array)
+            let messageArray = [];
+            if (messages && typeof messages === 'object') {
+                if (Array.isArray(messages)) {
+                    messageArray = messages;
+                } else {
+                    // Convert object to array
+                    messageArray = Object.values(messages);
+                }
+            }
+
+            messageArray.sort((a, b) => {
+                    const dateA = a.date || a.wzrk_ts || 0;
+                    const dateB = b.date || b.wzrk_ts || 0;
+                    return dateB - dateA; // Descending order (newest first)
+                });
+
+            if (messageArray.length === 0) {
+                inboxContent.innerHTML = `
+                    <div class="no-notifications">
+                        <div class="no-notifications-icon">🔔</div>
+                        <div class="no-notifications-text">No notifications available.</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let messagesHtml = '';
+            try {
+                // Replace the entire message processing section with this:
+                messageArray.forEach(message => {
+                    console.log('Processing message:', message);
+                    
+                    // Check if message is read (viewed = 0 means unread)
+                    const isUnread = message.viewed === 0;
+                    const messageTime = message.date ? new Date(message.date).toLocaleString() : 'Recent';
+                    
+                    // Extract the actual message content from CleverTap payload
+                    // The content is in the msg array
+                    let messageTitle = 'Chelsea FC Notification';
+                    let messageDescription = 'New notification from Chelsea FC';
+                    let onClickUrl = '';
+                    let openInNewTab = false;
+                    let iconUrl = '';
+                    let imageUrl = '';
+                    
+                    // Initialize button variables outside the if block
+                    let buttonText = '';
+                    let buttonUrl = '';
+                    let buttonOpenInNewTab = false;
+                    
+                    if (message.msg && Array.isArray(message.msg) && message.msg.length > 0) {
+                        const msgContent = message.msg[0];
+                        messageTitle = msgContent.title || messageTitle;
+                        messageDescription = msgContent.description || messageDescription;
+                        onClickUrl = msgContent.onClickUrl || '';
+                        openInNewTab = msgContent.openUrlInNewTab || false;
+                        iconUrl = msgContent.iconUrl || '';
+                        imageUrl = msgContent.imageUrl || '';
+                        
+                        // Extract button data
+                        if (msgContent.buttons && Array.isArray(msgContent.buttons) && msgContent.buttons.length > 0) {
+                            const buttonData = msgContent.buttons[0];
+                            buttonText = buttonData.text || '';
+                            buttonUrl = buttonData.url || '';
+                            buttonOpenInNewTab = buttonData.openUrlInNewTab || false;
+                        }
+                    }
+                    
+                    const messageId = message.id || message.wzrk_id || '';
+                    
+                    // Build the message HTML with image and icon
+                    let messageHtml = `<div class="inbox-message ${isUnread ? 'unread' : ''}" onclick="handleMessageClick('${messageId}', '${onClickUrl}', ${openInNewTab})">`;
+                    
+                    // Add image at the top if available
+                    if (imageUrl) {
+                        messageHtml += `<img src="${imageUrl}" alt="Notification Image" class="message-image" onerror="this.style.display='none'">`;
+                    }
+                    
+                    // Add content with icon and text
+                    messageHtml += `<div class="message-content">`;
+                    
+                    // Add icon if available
+                    if (iconUrl) {
+                        messageHtml += `<img src="${iconUrl}" alt="Chelsea FC" class="message-icon" onerror="this.style.display='none'">`;
+                    }
+                    
+                    // Add text content
+                    messageHtml += `
+                        <div class="message-text-content">
+                            <div class="message-title">${messageTitle}</div>
+                            <div class="message-text">${messageDescription}</div>
+                            ${buttonText ? `<button class="message-button" onclick="handleButtonClick('${buttonUrl}', ${buttonOpenInNewTab})">${buttonText}</button>` : ''}
+                        </div>
+                    `;
+                    
+                    messageHtml += `</div></div>`;
+                    
+                    messagesHtml += messageHtml;
+                });
+                
+                inboxContent.innerHTML = messagesHtml;
+            } catch (error) {
+                console.error('Error rendering messages:', error);
+                inboxContent.innerHTML = `
+                    <div class="no-notifications">
+                        <div class="no-notifications-icon">🔔</div>
+                        <div class="no-notifications-text">No notifications available.</div>
+                    </div>
+                `;
+            }
+        }
+        
+        // Function to handle message clicks (mark as read and navigate)
+        function handleMessageClick(messageId, onClickUrl, openInNewTab) {
+            // Mark message as read
+            markMessageAsRead(messageId);
+            
+            // Navigate to URL if provided
+            if (onClickUrl) {
+                if (openInNewTab) {
+                    window.open(onClickUrl, '_blank');
+                } else {
+                    window.location.href = onClickUrl;
+                }
+            }
+        }
+        
+        function markMessageAsRead(messageId) {
+            try {
+                if (window.clevertap && typeof clevertap.markReadInboxMessage === 'function') {
+                    clevertap.markReadInboxMessage(messageId);
+                    
+                    // Fire notification viewed event
+                    if (typeof clevertap.renderNotificationViewed === 'function') {
+                        clevertap.renderNotificationViewed({
+                            msgId: messageId,
+                            wzrk_pivot: "wzrk_default"
+                        });
+                    }
+                    
+                    // Re-render messages and update count
+                    setTimeout(() => {
+                        renderInboxMessages();
+                        updateNotificationCount();
+                    }, 100);
+                }
+            } catch (error) {
+                console.error('Error marking message as read:', error);
+            }
+        }
+        
+        // Function to update notification count badge
+        function updateNotificationCount() {
+            const countElement = document.getElementById('notificationCount');
+
+            try {
+                if (window.clevertap && typeof clevertap.getInboxMessageUnreadCount === 'function') {
+                    const unreadCount = clevertap.getInboxMessageUnreadCount();
+
+                    if (unreadCount > 0) {
+                        countElement.textContent = unreadCount;
+                        countElement.classList.add('show');
+                    } else {
+                        countElement.textContent = '';
+                        countElement.classList.remove('show');
+                    }
+                }
+            } catch (error) {
+                console.error('Error updating notification count:', error);
+            }
+
+            // Hide all other CleverTap badge elements
+            hideCleverTapNotifications();
+        }
+
+        function handleButtonClick(buttonUrl, openInNewTab) {
+            if (buttonUrl) {
+                if (openInNewTab) {
+                    window.open(buttonUrl, '_blank');
+                } else {
+                    window.location.href = buttonUrl;
+                }
+            }
+        }
+
+        
+        // Function to toggle inbox visibility
+        function toggleInbox() {
+            const customInbox = document.getElementById('customInbox');
+            
+            if (isInboxOpen) {
+                customInbox.classList.remove('show');
+                isInboxOpen = false;
+            } else {
+                renderInboxMessages();
+                updateNotificationCount();
+                customInbox.classList.add('show');
+                isInboxOpen = true;
+            }
+        }
+        
+        // Function to show inbox message with CleverTap event tracking
+        function showInboxMessage(trophy) {
+            // Map trophy names to CleverTap event names
+            let eventName = '';
+            switch(trophy) {
+                case '2012 Champions League':
+                    eventName = '2012 Chelsea';
+                    break;
+                case '2021 Champions League':
+                    eventName = '2021 Chelsea';
+                    break;
+                case '2025 Club World Cup':
+                    eventName = '2025 Chelsea';
+                    break;
+                default:
+                    eventName = trophy + ' Chelsea';
+            }
+            
+            // Fire CleverTap event
+            try {
+                clevertap.event.push(eventName);
+                console.log('CleverTap event fired:', eventName);
+            } catch (error) {
+                console.error('Error firing CleverTap event:', error);
+            }
+            
+        }
+
+        // Function to continuously update notification count and hide CleverTap badges
+        function startNotificationCountUpdater() {
+            // Update immediately
+            updateNotificationCount();
+            
+            // Then update every 2 seconds
+            setInterval(() => {
+                updateNotificationCount();
+                hideCleverTapNotifications();
+            }, 2000);
+        }
+
+        // Initialize when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set up notification bell click handler
+            document.getElementById('notificationBell').addEventListener('click', toggleInbox);
+            
+            // Close inbox when clicking outside
+            document.addEventListener('click', function(e) {
+                const customInbox = document.getElementById('customInbox');
+                const notificationBell = document.getElementById('notificationBell');
+                
+                if (isInboxOpen && !customInbox.contains(e.target) && !notificationBell.contains(e.target)) {
+                    customInbox.classList.remove('show');
+                    isInboxOpen = false;
+                }
+            });
+            
+            // Hide CleverTap notifications immediately
+            hideCleverTapNotifications();
+            
+            // Start the notification count updater
+            setTimeout(startNotificationCountUpdater, 1000);
+            
+            // Additional observer to catch dynamically added CleverTap elements
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            // Check if it's a CleverTap notification element
+                            if (node.className && (
+                                node.className.includes('wzrk') ||
+                                node.className.includes('clevertap') ||
+                                node.className.includes('notification-count')
+                            ) && node.id !== 'notificationCount') {
+                                node.style.display = 'none';
+                            }
+                        }
+                    });
+                });
+            });
+            
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
+        });
+
+        // Add interactive functionality to control buttons
+        document.querySelectorAll('.control-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                // Remove active class from siblings
+                this.parentElement.querySelectorAll('.control-btn').forEach(sibling => {
+                    sibling.classList.remove('active');
+                });
+                // Add active class to clicked button
+                this.classList.add('active');
+            });
+        });
+
+        // Add hover effects for trophy cards
+        document.querySelectorAll('.trophy-card').forEach(card => {
+            card.addEventListener('mouseenter', function() {
+                this.style.transform = 'translateY(-10px) scale(1.02)';
+            });
+            
+            card.addEventListener('mouseleave', function() {
+                this.style.transform = 'translateY(0) scale(1)';
+            });
+        });
+    </script>
+</body>
+</html>
