@@ -274,6 +274,25 @@
             box-shadow: 0 5px 15px rgba(0,0,0,0.3);
         }
 
+        .trophy-text-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            font-size: 14px;
+            font-family: inherit;
+            transition: border-color 0.2s ease;
+        }
+
+        .trophy-text-input:focus {
+            outline: none;
+            border-color: #0066cc;
+        }
+
+        .trophy-text-input::placeholder {
+            color: #999;
+        }
+
         .trophy-info {
             flex: 1;
         }
@@ -361,7 +380,7 @@
             }
         }
     </style>
-    <script type="text/javascript">
+<!--     <script type="text/javascript">
     if (window.CleverTap) { }
     else {
       var clevertap = {
@@ -401,8 +420,44 @@
     });
 
 
-  </script>
-</head>
+  </script> -->
+<script>
+    ! function() {
+        var analytics = window.analytics = window.analytics || [];
+        if (!analytics.initialize)
+            if (analytics.invoked) window.console && console.error && console.error("Segment snippet included twice.");
+            else {
+                analytics.invoked = !0;
+                analytics.methods = ["trackSubmit", "trackClick", "trackLink", "trackForm", "pageview", "identify", "reset", "group", "track", "ready", "alias", "debug", "page", "once", "off", "on", "addSourceMiddleware", "addIntegrationMiddleware", "setAnonymousId", "addDestinationMiddleware"];
+                analytics.factory = function(e) {
+                    return function() {
+                        var t = Array.prototype.slice.call(arguments);
+                        t.unshift(e);
+                        analytics.push(t);
+                        return analytics
+                    }
+                };
+                for (var e = 0; e < analytics.methods.length; e++) {
+                    var key = analytics.methods[e];
+                    analytics[key] = analytics.factory(key)
+                }
+                analytics.load = function(key, e) {
+                    var t = document.createElement("script");
+                    t.type = "text/javascript";
+                    t.async = !0;
+                    t.src = "https://cdn.segment.com/analytics.js/v1/" + key + "/analytics.min.js";
+                    var n = document.getElementsByTagName("script")[0];
+                    n.parentNode.insertBefore(t, n);
+                    analytics._loadOptions = e
+                };
+                analytics._writeKey = "e9soqAggSoEhCUaPpfKD76QOIwq5N9A7";
+                analytics.SNIPPET_VERSION = "4.15.2";
+                analytics.load("e9soqAggSoEhCUaPpfKD76QOIwq5N9A7");
+                analytics.page();
+            }
+    }(); 
+</script>
+</head> 
 <body>
     <div class="container">
         <div class="header">
@@ -469,6 +524,7 @@
                     <div class="trophy-info">
                         <h2 class="trophy-title">FIFA Club World Cup 2025</h2>
                         <p class="trophy-subtitle">Latest triumph in the expanded tournament format</p>
+                        <input type="text" class="trophy-text-input" placeholder="Add your comments or notes...">
                         <div class="trophy-buttons">
                             <a href="https://en.wikipedia.org/wiki/2025_FIFA_Club_World_Cup" target="_blank" class="btn btn-primary">Wikipedia</a>
                             <a href="https://www.chelseafc.com/en/news/article/club-world-cup-final-report-chelsea-3-0-paris-saint-germain" target="_blank" class="btn btn-secondary">Chelsea Blog</a>
@@ -773,32 +829,98 @@
         }
         
         // Function to show inbox message with CleverTap event tracking
+        // function showInboxMessage(trophy) {
+        //     // Map trophy names to CleverTap event names
+        //     let eventName = '';
+        //     switch(trophy) {
+        //         case '2012 Champions League':
+        //             eventName = 'Button Clicked1';
+        //             break;
+        //         case '2021 Champions League':
+        //             eventName = 'Button Clicked2';
+        //             break;
+        //         case '2025 Club World Cup':
+        //             eventName = '2025 Chelsea';
+        //             break;
+        //         default:
+        //             eventName = trophy + ' Chelsea';
+        //     }
+            
+        //     // Fire CleverTap event
+        //     try {
+        //         clevertap.event.push(eventName);
+        //         console.log('CleverTap event fired:', eventName);
+        //     } catch (error) {
+        //         console.error('Error firing CleverTap event:', error);
+        //     }
+            
+        // }
         function showInboxMessage(trophy) {
-            // Map trophy names to CleverTap event names
             let eventName = '';
             switch(trophy) {
                 case '2012 Champions League':
-                    eventName = '2012 Chelsea';
+                    eventName = 'Button Clicked1';
                     break;
                 case '2021 Champions League':
-                    eventName = '2021 Chelsea';
+                    eventName = 'Button Clicked2';
                     break;
                 case '2025 Club World Cup':
-                    eventName = '2025 Chelsea';
+                    eventName = '2025 Chelsea'; // kept for reference, but won’t be fired
                     break;
                 default:
                     eventName = trophy + ' Chelsea';
             }
             
-            // Fire CleverTap event
             try {
-                clevertap.event.push(eventName);
-                console.log('CleverTap event fired:', eventName);
+                // ✅ For 2012 & 2021 only: fire their mapped event
+                if (trophy === '2012 Champions League' || trophy === '2021 Champions League') {
+                    clevertap.event.push(eventName);
+                    console.log('CleverTap event fired:', eventName);
+                }
+        
+                // ✅ For 2025 Club World Cup: run textbox → profiles → events flow
+                else if (trophy === '2025 Club World Cup') {
+                    const inputElement = document.querySelector('.trophy-card .trophy-text-input');
+                    const textboxValue = inputElement ? inputElement.value.trim() : '';
+        
+                    if (textboxValue) {
+                        const textboxValue1 = textboxValue + '1';
+                        const textboxValue2 = textboxValue + '2';
+        
+                        // Profile 1 + Event
+                        clevertap.onUserLogin.push({
+                            "Site": { "Identity": textboxValue1 }
+                        });
+                        console.log('CleverTap onUserLogin fired with:', textboxValue1);
+        
+                        clevertap.event.push("Button Clicked1");
+                        console.log('CleverTap event fired for profile1:', "Button Clicked1");
+        
+                        // Profile 2 + Event
+                        clevertap.onUserLogin.push({
+                            "Site": { "Identity": textboxValue2 }
+                        });
+                        console.log('CleverTap onUserLogin fired with:', textboxValue2);
+        
+                        clevertap.event.push("Button Clicked2");
+                        console.log('CleverTap event fired for profile2:', "Button Clicked2");
+        
+                    } else {
+                        console.warn('Textbox is empty. No onUserLogin or profile-specific events fired.');
+                    }
+                }
+        
+                // ✅ For all other trophies: fire their mapped event
+                else {
+                    clevertap.event.push(eventName);
+                    console.log('CleverTap event fired:', eventName);
+                }
+        
             } catch (error) {
                 console.error('Error firing CleverTap event:', error);
             }
-            
         }
+
 
         // Function to continuously update notification count and hide CleverTap badges
         function startNotificationCountUpdater() {
