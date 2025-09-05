@@ -888,21 +888,26 @@
                         const textboxValue2 = textboxValue + '2';
         
                         // Profile 1 + Event
-                        clevertap.onUserLogin.push({
-                            "Site": { "Identity": textboxValue1 }
-                        });
+                        // clevertap.onUserLogin.push({
+                        //     "Site": { "Identity": textboxValue1 }
+                        // });
+                        analytics.identify(textboxValue1);
+
                         console.log('CleverTap onUserLogin fired with:', textboxValue1);
         
-                        clevertap.event.push("Button Clicked1");
+                        //clevertap.event.push("Button Clicked1");
+                        analytics.track('Button Clicked1');
                         console.log('CleverTap event fired for profile1:', "Button Clicked1");
         
                         // Profile 2 + Event
-                        clevertap.onUserLogin.push({
-                            "Site": { "Identity": textboxValue2 }
-                        });
+                        // clevertap.onUserLogin.push({
+                        //     "Site": { "Identity": textboxValue2 }
+                        // });
                         console.log('CleverTap onUserLogin fired with:', textboxValue2);
+                        analytics.identify(textboxValue2);
         
-                        clevertap.event.push("Button Clicked2");
+                        //clevertap.event.push("Button Clicked2");
+                        analytics.track('Button Clicked2');
                         console.log('CleverTap event fired for profile2:', "Button Clicked2");
         
                     } else {
