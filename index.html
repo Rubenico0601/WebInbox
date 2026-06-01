@@ -380,43 +380,7 @@
             }
         }
     </style>
-    <script type="text/javascript">
-    if (window.CleverTap) { }
-    else {
-      var clevertap = {
-        event: [],
-        profile: [],
-        account: [],
-        onUserLogin: [],
-        notifications: [],
-        privacy: [],
-      };
-      clevertap.account.push({ "id": "R5K-486-ZW7Z" });
-      clevertap.notifications.push({ inbox: { disableAutoRender: true } });
 
-      //clevertap.privacy.push({ optOut: true });
-
-      (function () {
-        var wzrk = document.createElement("script");
-            wzrk.type = "text/javascript";
-            wzrk.async = true;
-            wzrk.src =
-              ("https:" == document.location.protocol
-              ? "https://d2r1yp2w7bby2u.cloudfront.net"
-              : "http://static.clevertap.com") + "/js/clevertap.min.js";
-            var s = document.getElementsByTagName("script")[0];
-            s.parentNode.insertBefore(wzrk, s);
-      })();
-    }
-    console.log("Web SDK called");
-
-    document.querySelectorAll('*').forEach(el => {
-      const rect = el.getBoundingClientRect();
-      if (rect.top < 50 && rect.left < 50 && rect.width < 50 && rect.height < 50) {
-        console.log('🔍 Suspected badge element:', el, el.outerHTML);
-      }
-    });
-  </script>
 <!-- <script>
     ! function() {
         var analytics = window.analytics = window.analytics || [];
@@ -880,6 +844,38 @@
                 this.style.transform = 'translateY(0) scale(1)';
             });
         });
+    </script>
+
+    <!-- ✅ CleverTap init moved here so #CTwebinbox exists in DOM before SDK loads -->
+    <script type="text/javascript">
+    if (window.CleverTap) { }
+    else {
+      var clevertap = {
+        event: [],
+        profile: [],
+        account: [],
+        onUserLogin: [],
+        notifications: [],
+        privacy: [],
+      };
+      clevertap.account.push({ "id": "R5K-486-ZW7Z" });
+      clevertap.notifications.push({ inbox: { disableAutoRender: true } });
+
+      //clevertap.privacy.push({ optOut: true });
+
+      (function () {
+        var wzrk = document.createElement("script");
+            wzrk.type = "text/javascript";
+            wzrk.async = true;
+            wzrk.src =
+              ("https:" == document.location.protocol
+              ? "https://d2r1yp2w7bby2u.cloudfront.net"
+              : "http://static.clevertap.com") + "/js/clevertap.min.js";
+            var s = document.getElementsByTagName("script")[0];
+            s.parentNode.insertBefore(wzrk, s);
+      })();
+    }
+    console.log("Web SDK called");
     </script>
 </body>
 </html>
