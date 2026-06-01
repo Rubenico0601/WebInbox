@@ -407,8 +407,6 @@
             var s = document.getElementsByTagName("script")[0];
             s.parentNode.insertBefore(wzrk, s);
       })();
-
-      
     }
     console.log("Web SDK called");
 
@@ -418,8 +416,6 @@
         console.log('🔍 Suspected badge element:', el, el.outerHTML);
       }
     });
-
-
   </script>
 <!-- <script>
     ! function() {
@@ -467,8 +463,12 @@
                 <span class="notification-count" id="notificationCount"></span>
             </div>
             
-            <!-- Hidden CleverTap Web Inbox (required for functionality) -->
-            <div id="CTwebinbox" style="display: none !important; visibility: hidden !important; position: absolute !important; top: -9999px !important; left: -9999px !important; width: 0 !important; height: 0 !important; opacity: 0 !important; z-index: -1 !important;"></div>
+            <!-- ✅ FIX: CTwebinbox must NOT use display:none or visibility:hidden.
+                 The CleverTap SDK checks for this element's presence to initialise
+                 the inbox. Using display:none causes "Inbox selector is not configured"
+                 and getAllInboxMessages() returns nothing. Instead we push it
+                 off-screen so it is in the DOM but invisible. -->
+            <div id="CTwebinbox" style="position: absolute !important; top: -9999px !important; left: -9999px !important; width: 0 !important; height: 0 !important; overflow: hidden !important;"></div>
             
             <!-- Custom Web Inbox -->
             <div class="custom-inbox" id="customInbox">
@@ -538,14 +538,13 @@
     <script>
         // Function to hide any CleverTap notification badges that appear after page load
         function hideCleverTapNotifications() {
-            // Hide by class names
             const selectors = [
                 '.wzrk_notification_count',
                 '.wzrk-notification-count',
                 '.clevertap-notification-count',
                 '.ct-notification-count',
                 '.ct-web-inbox-count',
-                '[class*="notification-count"]:not(.notification-count)', // hides generic notification-counts
+                '[class*="notification-count"]:not(.notification-count)',
                 '[class*="wzrk"]:not(#CTwebinbox)',
                 '[id*="wzrk"]:not(#CTwebinbox)'
             ];
@@ -584,12 +583,9 @@
                 if (window.clevertap && typeof clevertap.getAllInboxMessages === 'function') {
                     const messages = clevertap.getAllInboxMessages();
                     console.log('CleverTap messages:', messages);
-                    
-                    // Ensure we return an array
                     if (Array.isArray(messages)) {
                         return messages;
                     } else if (messages && typeof messages === 'object') {
-                        // If it's an object, try to convert it to array
                         return Object.values(messages);
                     }
                     return [];
@@ -625,22 +621,20 @@
             
             console.log('Rendering messages:', messages, 'Type:', typeof messages, 'Is Array:', Array.isArray(messages));
             
-            // Check if messages is an object (CleverTap returns object, not array)
             let messageArray = [];
             if (messages && typeof messages === 'object') {
                 if (Array.isArray(messages)) {
                     messageArray = messages;
                 } else {
-                    // Convert object to array
                     messageArray = Object.values(messages);
                 }
             }
 
             messageArray.sort((a, b) => {
-                    const dateA = a.date || a.wzrk_ts || 0;
-                    const dateB = b.date || b.wzrk_ts || 0;
-                    return dateB - dateA; // Descending order (newest first)
-                });
+                const dateA = a.date || a.wzrk_ts || 0;
+                const dateB = b.date || b.wzrk_ts || 0;
+                return dateB - dateA;
+            });
 
             if (messageArray.length === 0) {
                 inboxContent.innerHTML = `
@@ -654,24 +648,18 @@
             
             let messagesHtml = '';
             try {
-                // Replace the entire message processing section with this:
                 messageArray.forEach(message => {
                     console.log('Processing message:', message);
                     
-                    // Check if message is read (viewed = 0 means unread)
                     const isUnread = message.viewed === 0;
                     const messageTime = message.date ? new Date(message.date).toLocaleString() : 'Recent';
                     
-                    // Extract the actual message content from CleverTap payload
-                    // The content is in the msg array
                     let messageTitle = 'Chelsea FC Notification';
                     let messageDescription = 'New notification from Chelsea FC';
                     let onClickUrl = '';
                     let openInNewTab = false;
                     let iconUrl = '';
                     let imageUrl = '';
-                    
-                    // Initialize button variables outside the if block
                     let buttonText = '';
                     let buttonUrl = '';
                     let buttonOpenInNewTab = false;
@@ -685,7 +673,6 @@
                         iconUrl = msgContent.iconUrl || '';
                         imageUrl = msgContent.imageUrl || '';
                         
-                        // Extract button data
                         if (msgContent.buttons && Array.isArray(msgContent.buttons) && msgContent.buttons.length > 0) {
                             const buttonData = msgContent.buttons[0];
                             buttonText = buttonData.text || '';
@@ -696,23 +683,18 @@
                     
                     const messageId = message.id || message.wzrk_id || '';
                     
-                    // Build the message HTML with image and icon
                     let messageHtml = `<div class="inbox-message ${isUnread ? 'unread' : ''}" onclick="handleMessageClick('${messageId}', '${onClickUrl}', ${openInNewTab})">`;
                     
-                    // Add image at the top if available
                     if (imageUrl) {
                         messageHtml += `<img src="${imageUrl}" alt="Notification Image" class="message-image" onerror="this.style.display='none'">`;
                     }
                     
-                    // Add content with icon and text
                     messageHtml += `<div class="message-content">`;
                     
-                    // Add icon if available
                     if (iconUrl) {
                         messageHtml += `<img src="${iconUrl}" alt="Chelsea FC" class="message-icon" onerror="this.style.display='none'">`;
                     }
                     
-                    // Add text content
                     messageHtml += `
                         <div class="message-text-content">
                             <div class="message-title">${messageTitle}</div>
@@ -722,7 +704,6 @@
                     `;
                     
                     messageHtml += `</div></div>`;
-                    
                     messagesHtml += messageHtml;
                 });
                 
@@ -738,12 +719,8 @@
             }
         }
         
-        // Function to handle message clicks (mark as read and navigate)
         function handleMessageClick(messageId, onClickUrl, openInNewTab) {
-            // Mark message as read
             markMessageAsRead(messageId);
-            
-            // Navigate to URL if provided
             if (onClickUrl) {
                 if (openInNewTab) {
                     window.open(onClickUrl, '_blank');
@@ -758,7 +735,6 @@
                 if (window.clevertap && typeof clevertap.markReadInboxMessage === 'function') {
                     clevertap.markReadInboxMessage(messageId);
                     
-                    // Fire notification viewed event
                     if (typeof clevertap.renderNotificationViewed === 'function') {
                         clevertap.renderNotificationViewed({
                             msgId: messageId,
@@ -766,7 +742,6 @@
                         });
                     }
                     
-                    // Re-render messages and update count
                     setTimeout(() => {
                         renderInboxMessages();
                         updateNotificationCount();
@@ -777,14 +752,11 @@
             }
         }
         
-        // Function to update notification count badge
         function updateNotificationCount() {
             const countElement = document.getElementById('notificationCount');
-
             try {
                 if (window.clevertap && typeof clevertap.getInboxMessageUnreadCount === 'function') {
                     const unreadCount = clevertap.getInboxMessageUnreadCount();
-
                     if (unreadCount > 0) {
                         countElement.textContent = unreadCount;
                         countElement.classList.add('show');
@@ -796,8 +768,6 @@
             } catch (error) {
                 console.error('Error updating notification count:', error);
             }
-
-            // Hide all other CleverTap badge elements
             hideCleverTapNotifications();
         }
 
@@ -811,11 +781,8 @@
             }
         }
 
-        
-        // Function to toggle inbox visibility
         function toggleInbox() {
             const customInbox = document.getElementById('customInbox');
-            
             if (isInboxOpen) {
                 customInbox.classList.remove('show');
                 isInboxOpen = false;
@@ -827,9 +794,7 @@
             }
         }
         
-        //Function to show inbox message with CleverTap event tracking
         function showInboxMessage(trophy) {
-            // Map trophy names to CleverTap event names
             let eventName = '';
             switch(trophy) {
                 case '2012 Champions League':
@@ -845,127 +810,41 @@
                     eventName = trophy + ' Chelsea';
             }
             
-            // Fire CleverTap event
             try {
                 clevertap.event.push(eventName);
                 console.log('CleverTap event fired:', eventName);
             } catch (error) {
                 console.error('Error firing CleverTap event:', error);
             }
-            
         }
-        // function showInboxMessage(trophy) {
-        //     let eventName = '';
-        //     switch(trophy) {
-        //         case '2012 Champions League':
-        //             eventName = 'Button Clicked1';
-        //             break;
-        //         case '2021 Champions League':
-        //             eventName = 'Button Clicked2';
-        //             break;
-        //         case '2025 Club World Cup':
-        //             eventName = '2025 Chelsea'; // kept for reference, but won’t be fired
-        //             break;
-        //         default:
-        //             eventName = trophy + ' Chelsea';
-        //     }
-            
-        //     try {
-        //         // ✅ For 2012 & 2021 only: fire their mapped event
-        //         if (trophy === '2012 Champions League' || trophy === '2021 Champions League') {
-        //             clevertap.event.push(eventName);
-        //             console.log('CleverTap event fired:', eventName);
-        //         }
-        
-        //         // ✅ For 2025 Club World Cup: run textbox → profiles → events flow
-        //         else if (trophy === '2025 Club World Cup') {
-        //             const inputElement = document.querySelector('.trophy-card .trophy-text-input');
-        //             const textboxValue = inputElement ? inputElement.value.trim() : '';
-        
-        //             if (textboxValue) {
-        //                 const textboxValue1 = textboxValue + '1';
-        //                 const textboxValue2 = textboxValue + '2';
-        
-        //                 // Profile 1 + Event
-        //                 // clevertap.onUserLogin.push({
-        //                 //     "Site": { "Identity": textboxValue1 }
-        //                 // });
-        //                 analytics.identify(textboxValue1);
 
-        //                 console.log('CleverTap onUserLogin fired with:', textboxValue1);
-        
-        //                 //clevertap.event.push("Button Clicked1");
-        //                 analytics.track('Button Clicked1');
-        //                 console.log('CleverTap event fired for profile1:', "Button Clicked1");
-        
-        //                 // Profile 2 + Event
-        //                 // clevertap.onUserLogin.push({
-        //                 //     "Site": { "Identity": textboxValue2 }
-        //                 // });
-        //                 console.log('CleverTap onUserLogin fired with:', textboxValue2);
-        //                 analytics.identify(textboxValue2);
-        
-        //                 //clevertap.event.push("Button Clicked2");
-        //                 analytics.track('Button Clicked2');
-        //                 console.log('CleverTap event fired for profile2:', "Button Clicked2");
-        
-        //             } else {
-        //                 console.warn('Textbox is empty. No onUserLogin or profile-specific events fired.');
-        //             }
-        //         }
-        
-        //         // ✅ For all other trophies: fire their mapped event
-        //         else {
-        //             clevertap.event.push(eventName);
-        //             console.log('CleverTap event fired:', eventName);
-        //         }
-        
-        //     } catch (error) {
-        //         console.error('Error firing CleverTap event:', error);
-        //     }
-        // }
-
-
-        // Function to continuously update notification count and hide CleverTap badges
         function startNotificationCountUpdater() {
-            // Update immediately
             updateNotificationCount();
-            
-            // Then update every 2 seconds
             setInterval(() => {
                 updateNotificationCount();
                 hideCleverTapNotifications();
             }, 2000);
         }
 
-        // Initialize when page loads
         document.addEventListener('DOMContentLoaded', function() {
-            // Set up notification bell click handler
             document.getElementById('notificationBell').addEventListener('click', toggleInbox);
             
-            // Close inbox when clicking outside
             document.addEventListener('click', function(e) {
                 const customInbox = document.getElementById('customInbox');
                 const notificationBell = document.getElementById('notificationBell');
-                
                 if (isInboxOpen && !customInbox.contains(e.target) && !notificationBell.contains(e.target)) {
                     customInbox.classList.remove('show');
                     isInboxOpen = false;
                 }
             });
             
-            // Hide CleverTap notifications immediately
             hideCleverTapNotifications();
-            
-            // Start the notification count updater
             setTimeout(startNotificationCountUpdater, 1000);
             
-            // Additional observer to catch dynamically added CleverTap elements
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
                     mutation.addedNodes.forEach(function(node) {
-                        if (node.nodeType === 1) { // Element node
-                            // Check if it's a CleverTap notification element
+                        if (node.nodeType === 1) {
                             if (node.className && (
                                 node.className.includes('wzrk') ||
                                 node.className.includes('clevertap') ||
@@ -984,24 +863,19 @@
             });
         });
 
-        // Add interactive functionality to control buttons
         document.querySelectorAll('.control-btn').forEach(btn => {
             btn.addEventListener('click', function() {
-                // Remove active class from siblings
                 this.parentElement.querySelectorAll('.control-btn').forEach(sibling => {
                     sibling.classList.remove('active');
                 });
-                // Add active class to clicked button
                 this.classList.add('active');
             });
         });
 
-        // Add hover effects for trophy cards
         document.querySelectorAll('.trophy-card').forEach(card => {
             card.addEventListener('mouseenter', function() {
                 this.style.transform = 'translateY(-10px) scale(1.02)';
             });
-            
             card.addEventListener('mouseleave', function() {
                 this.style.transform = 'translateY(0) scale(1)';
             });
