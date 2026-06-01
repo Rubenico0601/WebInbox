@@ -381,6 +381,29 @@
         }
     </style>
 
+    <!-- ✅ STEP 1: CleverTap stub object set in <head> BEFORE the SDK loads.
+         The SDK consumes the notifications array on init — if the SDK loads first,
+         any subsequent push() calls are ignored and inbox stays unconfigured. -->
+    <script type="text/javascript">
+        var clevertap = {
+            event: [],
+            profile: [],
+            account: [],
+            onUserLogin: [],
+            notifications: [],
+            privacy: [],
+        };
+        clevertap.account.push({ "id": "R5K-486-ZW7Z" });
+        clevertap.notifications.push({
+            inbox: {
+                disableAutoRender: true,
+                selector: '#CTwebinbox'
+            }
+        });
+        //clevertap.privacy.push({ optOut: true });
+        console.log("CleverTap stub initialised, notifications:", JSON.stringify(clevertap.notifications));
+    </script>
+
 <!-- <script>
     ! function() {
         var analytics = window.analytics = window.analytics || [];
@@ -426,12 +449,8 @@
                 🔔
                 <span class="notification-count" id="notificationCount"></span>
             </div>
-            
-            <!-- ✅ FIX: CTwebinbox must NOT use display:none or visibility:hidden.
-                 The CleverTap SDK checks for this element's presence to initialise
-                 the inbox. Using display:none causes "Inbox selector is not configured"
-                 and getAllInboxMessages() returns nothing. Instead we push it
-                 off-screen so it is in the DOM but invisible. -->
+
+            <!-- CTwebinbox: off-screen so SDK can find it, but visually hidden -->
             <div id="CTwebinbox" style="position: absolute !important; top: -9999px !important; left: -9999px !important; width: 0 !important; height: 0 !important; overflow: hidden !important;"></div>
             
             <!-- Custom Web Inbox -->
@@ -528,7 +547,6 @@
                 });
             });
             
-            // Hide fixed positioned elements that might be notification badges
             const fixedElements = document.querySelectorAll('div[style*="position: fixed"]');
             fixedElements.forEach(el => {
                 const style = el.getAttribute('style');
@@ -538,10 +556,8 @@
             });
         }
 
-        // Custom Web Inbox functionality
         let isInboxOpen = false;
         
-        // Function to get inbox messages from CleverTap
         function getInboxMessages() {
             try {
                 if (window.clevertap && typeof clevertap.getAllInboxMessages === 'function') {
@@ -562,7 +578,6 @@
             }
         }
         
-        // Function to get unread message count
         function getUnreadCount() {
             try {
                 if (window.clevertap && typeof clevertap.getInboxMessageUnreadCount === 'function') {
@@ -570,7 +585,6 @@
                     console.log('CleverTap unread count:', count);
                     return count || 0;
                 }
-                console.log('CleverTap getInboxMessageUnreadCount not available');
                 return 0;
             } catch (error) {
                 console.error('Error getting unread count:', error);
@@ -578,7 +592,6 @@
             }
         }
         
-        // Function to render inbox messages
         function renderInboxMessages() {
             const inboxContent = document.getElementById('inboxContent');
             const messages = getInboxMessages();
@@ -616,7 +629,6 @@
                     console.log('Processing message:', message);
                     
                     const isUnread = message.viewed === 0;
-                    const messageTime = message.date ? new Date(message.date).toLocaleString() : 'Recent';
                     
                     let messageTitle = 'Chelsea FC Notification';
                     let messageDescription = 'New notification from Chelsea FC';
@@ -782,14 +794,6 @@
             }
         }
 
-        function startNotificationCountUpdater() {
-            updateNotificationCount();
-            setInterval(() => {
-                updateNotificationCount();
-                hideCleverTapNotifications();
-            }, 2000);
-        }
-
         document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('notificationBell').addEventListener('click', toggleInbox);
             
@@ -803,7 +807,18 @@
             });
             
             hideCleverTapNotifications();
-            setTimeout(startNotificationCountUpdater, 1000);
+
+            // ✅ Wait for CleverTap to confirm inbox data is ready before fetching messages
+            document.addEventListener('CT_inbox_loaded', function() {
+                console.log('CT_inbox_loaded fired — inbox data is ready');
+                updateNotificationCount();
+            });
+
+            // Fallback in case CT_inbox_loaded already fired before listener attached
+            setTimeout(() => {
+                console.log('Fallback timeout — attempting updateNotificationCount');
+                updateNotificationCount();
+            }, 3000);
             
             const observer = new MutationObserver(function(mutations) {
                 mutations.forEach(function(mutation) {
@@ -846,36 +861,19 @@
         });
     </script>
 
-    <!-- ✅ CleverTap init moved here so #CTwebinbox exists in DOM before SDK loads -->
+    <!-- ✅ STEP 2: SDK loader at the bottom so #CTwebinbox exists in DOM when SDK initialises -->
     <script type="text/javascript">
-    if (window.CleverTap) { }
-    else {
-      var clevertap = {
-        event: [],
-        profile: [],
-        account: [],
-        onUserLogin: [],
-        notifications: [],
-        privacy: [],
-      };
-      clevertap.account.push({ "id": "R5K-486-ZW7Z" });
-      clevertap.notifications.push({ inbox: { disableAutoRender: true } });
-
-      //clevertap.privacy.push({ optOut: true });
-
-      (function () {
-        var wzrk = document.createElement("script");
+        (function () {
+            var wzrk = document.createElement("script");
             wzrk.type = "text/javascript";
             wzrk.async = true;
-            wzrk.src =
-              ("https:" == document.location.protocol
-              ? "https://d2r1yp2w7bby2u.cloudfront.net"
-              : "http://static.clevertap.com") + "/js/clevertap.min.js";
+            wzrk.src = ("https:" == document.location.protocol
+                ? "https://d2r1yp2w7bby2u.cloudfront.net"
+                : "http://static.clevertap.com") + "/js/clevertap.min.js";
             var s = document.getElementsByTagName("script")[0];
             s.parentNode.insertBefore(wzrk, s);
-      })();
-    }
-    console.log("Web SDK called");
+        })();
+        console.log("Web SDK loader called");
     </script>
 </body>
 </html>
